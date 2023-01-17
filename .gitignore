@@ -1,0 +1,9 @@
+__pycache__/
+node_modules/
+.serverless/
+env/
+serverless_sdk/
+config.py
+google-creds.json
+.env
+**.pyc

@@ -1,0 +1,10 @@
+{
+  "name": "soccer-rsvp",
+  "version": "1.0.0",
+  "description": "An app to simplify and automate managing pickup soccer attendance",
+  "author": "",
+  "devDependencies": {
+    "serverless-python-requirements": "^6.0.0",
+    "serverless-wsgi": "^3.0.1"
+  }
+}
