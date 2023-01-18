@@ -31,7 +31,7 @@ def get_roster():
                                 range=os.environ.get('SPREADSHEET_RANGE_ROSTER')).execute()
     results = result.get('values', [])
 
-    # Name:phone dict
+    # Phone:name dict
     players = {}
 
     # Skip the header row.
@@ -40,7 +40,7 @@ def get_roster():
             # Remove unicode characters that sometimes come in through the spreadsheet.
             phone_encoded = player[1].encode("ascii", "ignore")
             phone_decoded = phone_encoded.decode()
-            players[player[0]] = phone_decoded
+            players[phone_decoded] = player[0]
 
     return players
 
@@ -93,7 +93,7 @@ def roster():
     if not roster:
         return "Roster not found", 400
 
-    player_names = roster.keys()
+    player_names = roster.values()
     return '<strong>Roster:</strong><br>- ' + '<br>- '.join(player_names)
 
 
@@ -105,7 +105,7 @@ def send_rsvp():
         return "Roster not found", 400
 
     message = f"Hey RHSG! Please reply YES/NO if you'll be at soccer on {os.environ.get('EVENT_DATE')} at 8am. -Nate"
-    for phone in roster.values():
+    for phone in roster.keys():
         send_sms(phone, message)
 
     return f"Messages sent to {len(roster)} people"
@@ -117,29 +117,29 @@ def twilio():
     and stores their RSVP to our database."""
 
     # Strip plus signs from phone numbers.
-    user_phone = request.values.get('From', '').replace('+', '')
+    phone = request.values.get('From', '').replace('+', '')
     message = request.values.get('Body', '')
 
     # Log all responses for debugging.
-    log_message(user_phone, message, 'inbound')
+    log_message(phone, message, 'inbound')
 
     # Remove trailing white spaces that some iPhones add.
     if message.upper().strip() not in ['YES', 'NO']:
         error_message = 'Error: Please respond with only a YES or NO.'
-        send_sms(user_phone, error_message)
+        send_sms(phone, error_message)
         return "Error: Invalid SMS body", 400
 
     # Check if sender is in our roster.
     roster = get_roster()
-    if user_phone not in roster.values():
+    if phone not in roster.keys():
         error_message = 'Sorry, you are not in our roster.'
-        send_sms(user_phone, error_message)
+        send_sms(phone, error_message)
         return "Error: Sender not in roster", 403
 
     # Save RSVP to Google Sheet.
-    save_rsvp(user_phone, message)
+    save_rsvp(roster[phone], message)
 
     success_message = "Thank you!"
-    send_sms(user_phone, success_message)
+    send_sms(phone, success_message)
 
     return "Success", 200
