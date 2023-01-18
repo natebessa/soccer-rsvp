@@ -22,11 +22,10 @@ credentials = service_account.Credentials.from_service_account_file(secret_file,
 service = discovery.build('sheets', 'v4', credentials=credentials)
 sheet = service.spreadsheets()
 
+EVENT_DATE = os.environ.get('EVENT_DATE')
 
-# Pulls the roster list from the spreadsheet.
 def get_roster():
-    """Returns a list of tuples of roster players. Can filter out players
-    by active status and if they're beta testers."""
+    """Returns the roster players."""
     result = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
                                 range=os.environ.get('SPREADSHEET_RANGE_ROSTER')).execute()
     results = result.get('values', [])
@@ -44,8 +43,28 @@ def get_roster():
 
     return players
 
-# Writes what messages are sent/received to the appropriate spreadsheet.
+def get_rsvps(date):
+    """Returns the RSVPs for a given date."""
+    result = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
+                                range=os.environ.get('SPREADSHEET_RANGE_RSVPS')).execute()
+    results = result.get('values', [])
+
+    # Status:[Name]
+    rsvps = {
+        'YES': [],
+        'NO': []
+    }
+
+    # Skip the header row.
+    for rsvp in results[1:]:
+        if rsvp[1] == EVENT_DATE:
+            rsvps[rsvp[2]].append(rsvp[0])
+
+    return rsvps
+
 def log_message(phone, message, direction):
+    """Writes what messages are sent/received to the appropriate spreadsheet."""
+
     values = [[phone, datetime.now().strftime("%m/%d/%Y, %H:%M:%S"), message]]
     body = {'values': values}
 
@@ -70,9 +89,17 @@ def send_sms(phone, message):
 
     log_message(phone, message, 'outbound')
 
+def send_rsvp_summary(phone):
+    """Texts someone a summary of RSVPs so far for the next event."""
+    rsvps = get_rsvps(date=EVENT_DATE)
+    message = f"So far we have {len(rsvps['YES'])} YES and {len(rsvps['NO'])} NO.\n\n"
+    message += f"Yes: {', '.join(rsvps['YES'])}\n\n"
+    message += f"No: {', '.join(rsvps['NO'])}"
+    send_sms(phone, message)
+
 # Writes someone's RSVP to the spreadsheet.
 def save_rsvp(phone, status):
-    values = [[phone, os.environ.get('EVENT_DATE'), status.upper()]]
+    values = [[phone, EVENT_DATE, status.upper().strip()]]
     body = {'values': values}
     sheet.values().append(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
                           range=os.environ.get('SPREADSHEET_RANGE_RSVPS'),
@@ -83,7 +110,7 @@ def save_rsvp(phone, status):
 @app.route("/")
 def root():
     """Index page."""
-    return f"Next game: {os.environ.get('EVENT_DATE')}"
+    return f"Next game: {EVENT_DATE}"
 
 
 @app.route('/roster', methods=['GET'])
@@ -97,6 +124,25 @@ def roster():
     return '<strong>Roster:</strong><br>- ' + '<br>- '.join(player_names)
 
 
+@app.route('/status', methods=['GET'])
+def status():
+    """Return the RSVP statuses for next game."""
+    rsvps = get_rsvps(date=EVENT_DATE)
+
+    html = f"<p><strong>Yes ({len(rsvps['YES'])})</strong></p>"
+    html += "<ul>"
+    for rsvp in rsvps['YES']:
+        html += f"<li>{rsvp}</li>"
+    html += "</ul>"
+
+    html += f"<p><strong>No ({len(rsvps['NO'])})</strong></p>"
+    html += "<ul>"
+    for rsvp in rsvps['NO']:
+        html += f"<li>{rsvp}</li>"
+    html += "</ul>"
+
+    return html
+
 @app.route('/send-rsvp', methods=['GET'])
 def send_rsvp():
     """Sends RSVP requests."""
@@ -104,7 +150,7 @@ def send_rsvp():
     if not roster:
         return "Roster not found", 400
 
-    message = f"Hey RHSG! Please reply YES/NO if you'll be at soccer on {os.environ.get('EVENT_DATE')} at 8am. -Nate"
+    message = f"Hey RHSG! Roll call for soccer on {EVENT_DATE} at 8am.\n\nPlease reply YES/NO if you can make it.\n\nReply STATUS to see who has responded so far."
     for phone in roster.keys():
         send_sms(phone, message)
 
@@ -124,22 +170,28 @@ def twilio():
     log_message(phone, message, 'inbound')
 
     # Remove trailing white spaces that some iPhones add.
-    if message.upper().strip() not in ['YES', 'NO']:
-        error_message = 'Error: Please respond with only a YES or NO.'
+    if message.upper().strip() not in ['YES', 'NO', 'STATUS']:
+        error_message = 'Error: Please respond with only a YES, NO, OR STATUS.'
         send_sms(phone, error_message)
         return "Error: Invalid SMS body", 400
 
-    # Check if sender is in our roster.
-    roster = get_roster()
-    if phone not in roster.keys():
-        error_message = 'Sorry, you are not in our roster.'
-        send_sms(phone, error_message)
-        return "Error: Sender not in roster", 403
+    # Process RSVPs
+    if message.upper().strip() in ['YES', 'NO']:
 
-    # Save RSVP to Google Sheet.
-    save_rsvp(roster[phone], message)
+        # Check if sender is in our roster.
+        roster = get_roster()
+        if phone not in roster.keys():
+            error_message = 'Sorry, you are not in our roster.'
+            send_sms(phone, error_message)
+            return "Error: Sender not in roster", 403
 
-    success_message = "Thank you!"
-    send_sms(phone, success_message)
+        # Save RSVP to Google Sheet.
+        save_rsvp(roster[phone], message)
+
+        success_message = "Thank you!"
+        send_sms(phone, success_message)
+
+    elif message.upper().strip() == 'STATUS':
+        send_rsvp_summary(phone)
 
     return "Success", 200
