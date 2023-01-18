@@ -25,14 +25,54 @@ sheet = service.spreadsheets()
 
 # Pulls the roster list from the spreadsheet.
 def get_roster():
+    """Returns a list of tuples of roster players. Can filter out players
+    by active status and if they're beta testers."""
     result = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
                                 range=os.environ.get('SPREADSHEET_RANGE_ROSTER')).execute()
-    return result.get('values', [])
+    results = result.get('values', [])
 
+    players = []
+    for player in results[1:]:
+        if player[2] == 'Yes' and player[3] == 'Yes':
+            phone = player[1]
+
+            # Remove unicode characters that sometimes come in through the spreadsheet.
+            phone_encoded = phone.encode("ascii", "ignore")
+            phone_decoded = phone_encoded.decode()
+
+            players.append([player[0], phone_decoded])
+
+    return players
+
+# Writes what messages are sent/received to the appropriate spreadsheet.
+def log_message(phone, message, direction):
+    values = [[phone, datetime.now().strftime("%m/%d/%Y, %H:%M:%S"), message]]
+    body = {'values': values}
+
+    if direction == 'inbound':
+        spreadsheet = os.environ.get('SPREADSHEET_RANGE_SMS_LOGS_RECEIVED')
+    elif direction == 'outbound':
+        spreadsheet = os.environ.get('SPREADSHEET_RANGE_SMS_LOGS_SENT')
+    else:
+        raise Exception('Direction unknown')
+
+    sheet.values().append(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
+                          range=spreadsheet,
+                          valueInputOption='RAW',
+                          body=body).execute()
+
+def send_sms(phone, message):
+    client.messages.create(
+        body=message,
+        from_=os.environ.get('TWILIO_PHONE_NUMBER'),
+        to=phone
+    )
+
+    log_message(phone, message, 'outbound')
 
 # Writes someone's RSVP to the spreadsheet.
-def save_rsvp(name, status):
-    values = [[name, os.environ.get('EVENT_DATE'), status]]
+def save_rsvp(phone, status):
+    values = [[phone, os.environ.get('EVENT_DATE'), status.upper()]]
     body = {'values': values}
     sheet.values().append(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
                           range=os.environ.get('SPREADSHEET_RANGE_RSVPS'),
@@ -53,8 +93,22 @@ def roster():
     if not roster:
         return "Roster not found", 400
 
-    player_names = [player[0] for player in roster[1:] if player[2] == 'Yes']
+    player_names = [player[0] for player in roster]
     return '<strong>Roster:</strong><br>- ' + '<br>- '.join(player_names)
+
+
+@app.route('/send-rsvp', methods=['GET'])
+def send_rsvp():
+    """Sends RSVP requests."""
+    roster = get_roster()
+    if not roster:
+        return "Roster not found", 400
+
+    message = f"Hey RHSG! Please reply YES/NO if you'll be at soccer on {os.environ.get('EVENT_DATE')} at 8am. -Nate"
+    for player in roster:
+        send_sms(player[1], message)
+
+    return f"Messages sent to {len(roster)} people"
 
 
 @app.route('/twilio', methods=['POST'])
@@ -66,31 +120,27 @@ def twilio():
     user_phone = request.values.get('From', '').replace('+', '')
     message = request.values.get('Body', '')
 
-    if message.upper() not in ['YES', 'NO']:
-        message = client.messages.create(
-            body='Error: Please respond with only a YES or NO.',
-            from_=os.environ.get('TWILIO_PHONE_NUMBER'),
-            to=user_phone
-        )
+    # Log all responses for debugging.
+    log_message(user_phone, message, 'inbound')
+
+    # Remove trailing white spaces that some iPhones add.
+    if message.upper().strip() not in ['YES', 'NO']:
+        error_message = 'Error: Please respond with only a YES or NO.'
+        send_sms(user_phone, error_message)
         return "Error: Invalid SMS body", 400
 
     # Check if sender is in our roster.
     roster = get_roster()
-    allowed_phone_numbers = [player[1] for player in roster[1:]]
+    allowed_phone_numbers = [player[1] for player in roster]
     if user_phone not in allowed_phone_numbers:
-        message = client.messages.create(
-            body='Sorry, you are not in our roster.',
-            from_=os.environ.get('TWILIO_PHONE_NUMBER'),
-            to=user_phone
-        )
+        error_message = 'Sorry, you are not in our roster.'
+        send_sms(user_phone, error_message)
         return "Error: Sender not in roster", 403
 
     # Save RSVP to Google Sheet.
     save_rsvp(user_phone, message)
 
-    message = client.messages.create(
-        body='Thank you!',
-        from_=os.environ.get('TWILIO_PHONE_NUMBER'),
-        to=user_phone
-    )
+    success_message = "Thank you!"
+    send_sms(user_phone, success_message)
+
     return "Success", 200
