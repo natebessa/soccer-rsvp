@@ -31,16 +31,16 @@ def get_roster():
                                 range=os.environ.get('SPREADSHEET_RANGE_ROSTER')).execute()
     results = result.get('values', [])
 
-    players = []
+    # Name:phone dict
+    players = {}
+
+    # Skip the header row.
     for player in results[1:]:
         if player[2] == 'Yes' and player[3] == 'Yes':
-            phone = player[1]
-
             # Remove unicode characters that sometimes come in through the spreadsheet.
-            phone_encoded = phone.encode("ascii", "ignore")
+            phone_encoded = player[1].encode("ascii", "ignore")
             phone_decoded = phone_encoded.decode()
-
-            players.append([player[0], phone_decoded])
+            players[player[0]] = phone_decoded
 
     return players
 
@@ -93,7 +93,7 @@ def roster():
     if not roster:
         return "Roster not found", 400
 
-    player_names = [player[0] for player in roster]
+    player_names = roster.keys()
     return '<strong>Roster:</strong><br>- ' + '<br>- '.join(player_names)
 
 
@@ -105,8 +105,8 @@ def send_rsvp():
         return "Roster not found", 400
 
     message = f"Hey RHSG! Please reply YES/NO if you'll be at soccer on {os.environ.get('EVENT_DATE')} at 8am. -Nate"
-    for player in roster:
-        send_sms(player[1], message)
+    for phone in roster.values():
+        send_sms(phone, message)
 
     return f"Messages sent to {len(roster)} people"
 
@@ -131,8 +131,7 @@ def twilio():
 
     # Check if sender is in our roster.
     roster = get_roster()
-    allowed_phone_numbers = [player[1] for player in roster]
-    if user_phone not in allowed_phone_numbers:
+    if user_phone not in roster.values():
         error_message = 'Sorry, you are not in our roster.'
         send_sms(user_phone, error_message)
         return "Error: Sender not in roster", 403
