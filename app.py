@@ -80,6 +80,13 @@ def log_message(phone, message, direction):
                           valueInputOption='RAW',
                           body=body).execute()
 
+def get_sms_reply_twiml(phone, message):
+    """Logs the message we'll send and returns a message ready for sending TwiML markup."""
+    log_message(phone, message, 'outbound')
+    response = MessagingResponse()
+    response.message(message)
+    return str(response)
+
 def send_sms(phone, message):
     client.messages.create(
         body=message,
@@ -89,13 +96,13 @@ def send_sms(phone, message):
 
     log_message(phone, message, 'outbound')
 
-def send_rsvp_summary(phone):
-    """Texts someone a summary of RSVPs so far for the next event."""
+def get_sms_rsvp_summary_twiml(phone):
+    """Returns the TwiML markup for a text with a summary of RSVPs so far for the next event."""
     rsvps = get_rsvps(date=EVENT_DATE)
     message = f"So far we have {len(rsvps['YES'])} YES and {len(rsvps['NO'])} NO.\n\n"
     message += f"Yes: {', '.join(rsvps['YES'])}\n\n"
     message += f"No: {', '.join(rsvps['NO'])}"
-    send_sms(phone, message)
+    return get_sms_reply_twiml(phone, message)
 
 # Writes someone's RSVP to the spreadsheet.
 def save_rsvp(phone, status):
@@ -171,9 +178,9 @@ def twilio():
 
     # Remove trailing white spaces that some iPhones add.
     if message.upper().strip() not in ['YES', 'NO', 'STATUS']:
-        error_message = 'Error: Please respond with only a YES, NO, OR STATUS.'
-        send_sms(phone, error_message)
-        return "Error: Invalid SMS body", 400
+        message = 'Error: Please respond with only YES, NO, or STATUS.'
+        response = get_sms_reply_twiml(phone=phone, message=message)
+        return str(response)
 
     # Process RSVPs
     if message.upper().strip() in ['YES', 'NO']:
@@ -181,17 +188,19 @@ def twilio():
         # Check if sender is in our roster.
         roster = get_roster()
         if phone not in roster.keys():
-            error_message = 'Sorry, you are not in our roster.'
-            send_sms(phone, error_message)
-            return "Error: Sender not in roster", 403
+            message = 'Sorry, you are not in our roster.'
+            response = get_sms_reply_twiml(phone=phone, message=message)
+            return str(response)
 
         # Save RSVP to Google Sheet.
         save_rsvp(roster[phone], message)
 
-        success_message = "Thank you!"
-        send_sms(phone, success_message)
+        message = "Thank you!"
+        response = get_sms_reply_twiml(phone=phone, message=message)
+        return str(response)
 
     elif message.upper().strip() == 'STATUS':
-        send_rsvp_summary(phone)
+        response = get_sms_rsvp_summary_twiml(phone)
+        return str(response)
 
-    return "Success", 200
+    return "Error: Unsupported text message.", 500
