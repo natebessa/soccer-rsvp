@@ -35,7 +35,8 @@ def get_roster():
 
     # Skip the header row.
     for player in results[1:]:
-        if player[2] == 'Yes' and player[3] == 'Yes':
+        # "Active" column
+        if player[2] == 'Yes':
             # Remove unicode characters that sometimes come in through the spreadsheet.
             phone_encoded = player[1].encode("ascii", "ignore")
             phone_decoded = phone_encoded.decode()
@@ -80,12 +81,20 @@ def log_message(phone, message, direction):
                           valueInputOption='RAW',
                           body=body).execute()
 
-def get_sms_reply_twiml(phone, message):
+def build_sms_message(phone, message):
     """Logs the message we'll send and returns a message ready for sending TwiML markup."""
-    log_message(phone, message, 'outbound')
+    log_message(phone=phone, message=message, direction='outbound')
     response = MessagingResponse()
     response.message(message)
     return str(response)
+
+def generate_sms_reply_to_status(phone):
+    """Returns the TwiML markup for a text with a summary of RSVPs so far for the next event."""
+    rsvps = get_rsvps(date=EVENT_DATE)
+    message = f"So far we have {len(rsvps['YES'])} YES and {len(rsvps['NO'])} NO.\n\n"
+    message += f"Yes: {', '.join(rsvps['YES'])}\n\n"
+    message += f"No: {', '.join(rsvps['NO'])}"
+    return build_sms_message(phone=phone, message=message)
 
 def send_sms(phone, message):
     client.messages.create(
@@ -95,14 +104,6 @@ def send_sms(phone, message):
     )
 
     log_message(phone, message, 'outbound')
-
-def get_sms_rsvp_summary_twiml(phone):
-    """Returns the TwiML markup for a text with a summary of RSVPs so far for the next event."""
-    rsvps = get_rsvps(date=EVENT_DATE)
-    message = f"So far we have {len(rsvps['YES'])} YES and {len(rsvps['NO'])} NO.\n\n"
-    message += f"Yes: {', '.join(rsvps['YES'])}\n\n"
-    message += f"No: {', '.join(rsvps['NO'])}"
-    return get_sms_reply_twiml(phone, message)
 
 # Writes someone's RSVP to the spreadsheet.
 def save_rsvp(phone, status):
@@ -174,33 +175,32 @@ def twilio():
     message = request.values.get('Body', '')
 
     # Log all responses for debugging.
-    log_message(phone, message, 'inbound')
+    log_message(phone=phone, message=message, direction='inbound')
 
-    # Remove trailing white spaces that some iPhones add.
-    if message.upper().strip() not in ['YES', 'NO', 'STATUS']:
+    # Remove any white spaces and capitalize.
+    message = message.upper().strip()
+
+    # Validate sender.
+    roster = get_roster()
+    if phone not in roster.keys():
+        message = 'Sorry, you are not in our roster.'
+        return build_sms_message(phone=phone, message=message)
+
+    # Validate message.
+    if message not in ['YES', 'NO', 'STATUS']:
         message = 'Error: Please respond with only YES, NO, or STATUS.'
-        response = get_sms_reply_twiml(phone=phone, message=message)
-        return str(response)
+        return build_sms_message(phone=phone, message=message)
 
-    # Process RSVPs
-    if message.upper().strip() in ['YES', 'NO']:
-
-        # Check if sender is in our roster.
-        roster = get_roster()
-        if phone not in roster.keys():
-            message = 'Sorry, you are not in our roster.'
-            response = get_sms_reply_twiml(phone=phone, message=message)
-            return str(response)
+    # Process RSVPs.
+    if message in ['YES', 'NO']:
 
         # Save RSVP to Google Sheet.
-        save_rsvp(roster[phone], message)
+        save_rsvp(phone=roster[phone], status=message)
 
-        message = "Thank you!"
-        response = get_sms_reply_twiml(phone=phone, message=message)
-        return str(response)
+        return build_sms_message(phone=phone, message="Thank you!")
 
-    elif message.upper().strip() == 'STATUS':
-        response = get_sms_rsvp_summary_twiml(phone)
-        return str(response)
+    # Process a status request.
+    elif message == 'STATUS':
+        return generate_sms_reply_to_status(phone=phone)
 
     return "Error: Unsupported text message.", 500
