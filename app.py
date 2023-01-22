@@ -52,14 +52,22 @@ def get_rsvps(date):
 
     # Status:[Name]
     rsvps = {
-        'YES': [],
-        'NO': []
+        'YES': set(),
+        'NO': set()
     }
 
     # Skip the header row.
     for rsvp in results[1:]:
         if rsvp[1] == EVENT_DATE:
-            rsvps[rsvp[2]].append(rsvp[0])
+
+            # A user might have updated their RSVP by submitting a new
+            # RSVP record. Google Sheets doesn't give a good way to find
+            # and update existing values in a spreadsheet, so instead we'll
+            # just make sure to use a player's last RSVP as their final one.
+            rsvps['YES'].discard(rsvp[0])
+            rsvps['NO'].discard(rsvp[0])
+
+            rsvps[rsvp[2]].add(rsvp[0])
 
     return rsvps
 
