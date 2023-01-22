@@ -205,7 +205,7 @@ def twilio():
         # Save RSVP to Google Sheet.
         save_rsvp(phone=roster[phone], status=message)
 
-        return build_sms_message(phone=phone, message="Thank you!")
+        return build_sms_message(phone=phone, message="Thank you!\n\nYou can change your RSVP any time by sending another YES/NO.")
 
     # Process a status request.
     elif message == 'STATUS':
