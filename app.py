@@ -108,8 +108,8 @@ def generate_sms_reply_to_status(phone):
     """Returns the TwiML markup for a text with a summary of RSVPs so far for the next event."""
     rsvps = get_rsvps(date=EVENT_DATE)
     message = f"So far we have {len(rsvps['YES'])} YES and {len(rsvps['NO'])} NO.\n\n"
-    message += f"Yes: {', '.join(rsvps['YES'])}\n\n"
-    message += f"No: {', '.join(rsvps['NO'])}"
+    message += f"Yes: {', '.join(sorted(rsvps['YES']))}\n\n"
+    message += f"No: {', '.join(sorted(rsvps['NO']))}"
     return build_sms_message(phone=phone, message=message)
 
 def send_sms(phone, message):
