@@ -79,6 +79,22 @@ def get_rsvp_row_number(player_name, date):
 
     return None
 
+def get_roster_row_number(phone):
+    """To assist with updating existing records, scan the spreadsheet
+    to see if there is already a row with this player. Return the row
+    number if so."""
+
+    result = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
+                                range=os.environ.get('SPREADSHEET_RANGE_ROSTER')).execute()
+    results = result.get('values', [])
+
+    # Google Sheets A1 notation uses a 1-index.
+    for row_num, row in enumerate(results, 1):
+        if row[1] == phone:
+            return row_num
+
+    return None
+
 def log_message(phone, message, direction):
     """Writes what messages are sent/received to the appropriate spreadsheet."""
 
@@ -142,6 +158,21 @@ def save_rsvp(player_name, status):
                             valueInputOption='RAW',
                             body=body).execute()
 
+# Updates a player's "active" status in the roster.
+def update_player_active_flag(phone, active):
+
+    existing_roster_row = get_roster_row_number(phone=phone)
+    active_flag = 'Yes' if active else 'No'
+
+    values = [[active_flag]]
+    body = {'values': values}
+
+    if existing_roster_row:
+        request = sheet.values().update(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
+                                         range=f'Roster!C{existing_roster_row}', # Google Sheets A1 Notation
+                                         valueInputOption='RAW',
+                                         body=body)
+        request.execute()
 
 @app.route("/")
 def root():
@@ -216,8 +247,8 @@ def twilio():
         return build_sms_message(phone=phone, message=message)
 
     # Validate message.
-    if message not in ['YES', 'NO', 'STATUS']:
-        message = 'Error: Please respond with only YES, NO, or STATUS.'
+    if message not in ['YES', 'NO', 'STATUS', 'LEAVE']:
+        message = 'Sorry, the only accepted responses at this time are: YES, NO, STATUS, and LEAVE.'
         return build_sms_message(phone=phone, message=message)
 
     # Process RSVPs.
@@ -231,5 +262,9 @@ def twilio():
     # Process a status request.
     elif message == 'STATUS':
         return generate_sms_reply_to_status(phone=phone)
+
+    elif message == 'LEAVE':
+        update_player_active_flag(phone=phone, active=False)
+        return build_sms_message(phone=phone, message="You're now unsubscribed from future RHSG messages. If you change your mind later, please reach out to Nate directly.")
 
     return "Error: Unsupported text message.", 500
