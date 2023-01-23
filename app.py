@@ -59,17 +59,25 @@ def get_rsvps(date):
     # Skip the header row.
     for rsvp in results[1:]:
         if rsvp[1] == EVENT_DATE:
-
-            # A user might have updated their RSVP by submitting a new
-            # RSVP record. Google Sheets doesn't give a good way to find
-            # and update existing values in a spreadsheet, so instead we'll
-            # just make sure to use a player's last RSVP as their final one.
-            rsvps['YES'].discard(rsvp[0])
-            rsvps['NO'].discard(rsvp[0])
-
             rsvps[rsvp[2]].add(rsvp[0])
 
     return rsvps
+
+def get_rsvp_row_number(player_name, date):
+    """To assist with updating existing records, scan the spreadsheet
+    to see if there is already a row with this player and date. Return
+    the row number if so."""
+
+    result = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
+                                range=os.environ.get('SPREADSHEET_RANGE_RSVPS')).execute()
+    results = result.get('values', [])
+
+    # Google Sheets A1 notation uses a 1-index.
+    for row_num, row in enumerate(results, 1):
+        if row[0] == player_name and row[1] == date:
+            return row_num
+
+    return None
 
 def log_message(phone, message, direction):
     """Writes what messages are sent/received to the appropriate spreadsheet."""
@@ -114,18 +122,31 @@ def send_sms(phone, message):
     log_message(phone, message, 'outbound')
 
 # Writes someone's RSVP to the spreadsheet.
-def save_rsvp(phone, status):
-    values = [[phone, EVENT_DATE, status.upper().strip()]]
+def save_rsvp(player_name, status):
+
+    # Check to see if player already has RSVPed.
+    existing_rsvp_row = get_rsvp_row_number(player_name=player_name, date=EVENT_DATE)
+
+    values = [[player_name, EVENT_DATE, status]]
     body = {'values': values}
-    sheet.values().append(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
-                          range=os.environ.get('SPREADSHEET_RANGE_RSVPS'),
-                          valueInputOption='RAW',
-                          body=body).execute()
+
+    if existing_rsvp_row:
+        request = sheet.values().update(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
+                                         range=f'RSVPs!A{existing_rsvp_row}:C{existing_rsvp_row}', # Google Sheets A1 Notation
+                                         valueInputOption='RAW',
+                                         body=body)
+        request.execute()
+    else:
+        sheet.values().append(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
+                            range=os.environ.get('SPREADSHEET_RANGE_RSVPS'),
+                            valueInputOption='RAW',
+                            body=body).execute()
 
 
 @app.route("/")
 def root():
     """Index page."""
+
     return f"Next game: {EVENT_DATE}"
 
 
@@ -203,7 +224,7 @@ def twilio():
     if message in ['YES', 'NO']:
 
         # Save RSVP to Google Sheet.
-        save_rsvp(phone=roster[phone], status=message)
+        save_rsvp(player_name=roster[phone], status=message)
 
         return build_sms_message(phone=phone, message="Thank you!\n\nYou can change your RSVP any time by sending another YES/NO.")
 
