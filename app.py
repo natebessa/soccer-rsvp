@@ -218,7 +218,7 @@ def send_rsvp():
     if not roster:
         return "Roster not found", 400
 
-    message = f"Hey RHSG! Roll call for soccer on {EVENT_DATE} at 8am.\n\nPlease reply YES/NO if you can make it.\n\nReply STATUS to see who has responded so far."
+    message = f"Hey RHSG! Roll call for soccer on {EVENT_DATE} at 8am.\n\nPlease reply YES/NO if you can make it.\n\nYou can also reply STATUS any time to see responses so far."
     for phone in roster.keys():
         send_sms(phone, message)
 
