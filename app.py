@@ -218,7 +218,7 @@ def send_rsvp():
     if not roster:
         return "Roster not found", 400
 
-    message = f"Hey RHSG! Roll call for soccer on {EVENT_DATE} at 8am.\n\nPlease reply YES/NO if you can make it.\n\nYou can also reply STATUS any time to see responses so far."
+    message = f"Hey RHSG! Roll call for soccer on {EVENT_DATE} at 8am.\n\nPlease reply YES/NO if you can make it.\n\nYou can also reply STATUS any time to see responses so far. Or text LEAVE to opt out of future games and messages."
     for phone in roster.keys():
         send_sms(phone, message)
 
@@ -248,7 +248,7 @@ def twilio():
 
     # Validate message.
     if message not in ['YES', 'NO', 'STATUS', 'LEAVE']:
-        message = 'Sorry, the only accepted responses at this time are: YES, NO, STATUS, and LEAVE.'
+        message = 'Sorry, I am a dumb bot. The only responses I understand at this time are: YES, NO, STATUS, and LEAVE.'
         return build_sms_message(phone=phone, message=message)
 
     # Process RSVPs.
