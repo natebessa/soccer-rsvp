@@ -174,42 +174,6 @@ def update_player_active_flag(phone, active):
                                          body=body)
         request.execute()
 
-@app.route("/")
-def root():
-    """Index page."""
-
-    return f"Next game: {EVENT_DATE}"
-
-
-@app.route('/roster', methods=['GET'])
-def roster():
-    """Return the current roster of the pickup league."""
-    roster = get_roster()
-    if not roster:
-        return "Roster not found", 400
-
-    player_names = roster.values()
-    return '<strong>Roster:</strong><br>- ' + '<br>- '.join(player_names)
-
-
-@app.route('/status', methods=['GET'])
-def status():
-    """Return the RSVP statuses for next game."""
-    rsvps = get_rsvps(date=EVENT_DATE)
-
-    html = f"<p><strong>Yes ({len(rsvps['YES'])})</strong></p>"
-    html += "<ul>"
-    for rsvp in rsvps['YES']:
-        html += f"<li>{rsvp}</li>"
-    html += "</ul>"
-
-    html += f"<p><strong>No ({len(rsvps['NO'])})</strong></p>"
-    html += "<ul>"
-    for rsvp in rsvps['NO']:
-        html += f"<li>{rsvp}</li>"
-    html += "</ul>"
-
-    return html
 
 @app.route('/send-rsvp', methods=['GET'])
 def send_rsvp():
