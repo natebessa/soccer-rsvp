@@ -26,8 +26,10 @@ EVENT_DATE = os.environ.get('EVENT_DATE')
 
 def get_roster():
     """Returns the roster players."""
+
     result = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
                                 range=os.environ.get('SPREADSHEET_RANGE_ROSTER')).execute()
+
     results = result.get('values', [])
 
     # Phone:name dict
@@ -46,8 +48,10 @@ def get_roster():
 
 def get_rsvps(date):
     """Returns the RSVPs for a given date."""
+
     result = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
                                 range=os.environ.get('SPREADSHEET_RANGE_RSVPS')).execute()
+
     results = result.get('values', [])
 
     # Status:[Name]
@@ -70,6 +74,7 @@ def get_rsvp_row_number(player_name, date):
 
     result = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
                                 range=os.environ.get('SPREADSHEET_RANGE_RSVPS')).execute()
+
     results = result.get('values', [])
 
     # Google Sheets A1 notation uses a 1-index.
@@ -86,6 +91,7 @@ def get_roster_row_number(phone):
 
     result = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
                                 range=os.environ.get('SPREADSHEET_RANGE_ROSTER')).execute()
+
     results = result.get('values', [])
 
     # Google Sheets A1 notation uses a 1-index.
@@ -148,15 +154,15 @@ def save_rsvp(player_name, status):
 
     if existing_rsvp_row:
         request = sheet.values().update(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
-                                         range=f'RSVPs!A{existing_rsvp_row}:C{existing_rsvp_row}', # Google Sheets A1 Notation
-                                         valueInputOption='RAW',
-                                         body=body)
+                                        range=f'RSVPs!A{existing_rsvp_row}:C{existing_rsvp_row}', # Google Sheets A1 Notation
+                                        valueInputOption='RAW',
+                                        body=body)
         request.execute()
     else:
         sheet.values().append(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
-                            range=os.environ.get('SPREADSHEET_RANGE_RSVPS'),
-                            valueInputOption='RAW',
-                            body=body).execute()
+                              range=os.environ.get('SPREADSHEET_RANGE_RSVPS'),
+                              valueInputOption='RAW',
+                              body=body).execute()
 
 # Updates a player's "active" status in the roster.
 def update_player_active_flag(phone, active):
@@ -191,8 +197,8 @@ def send_rsvp():
 
 @app.route('/twilio', methods=['POST'])
 def twilio():
-    """The webhook for Twilio. This processes SMS messages sent by players
-    and stores their RSVP to our database."""
+    """The consumer for the Twilio webhook. Processes messages sent by players
+    and stores their RSVP in the database."""
 
     # Strip plus signs from phone numbers.
     phone = request.values.get('From', '').replace('+', '')
