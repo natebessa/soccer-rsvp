@@ -26,6 +26,10 @@ For this project, I use the following technologies:
 
 First, create your Google Sheet that'll act as your database. You can clone my example here: https://docs.google.com/spreadsheets/d/1o5qf7vRcRmPSKx3SnmclB_tXotI6HecymYzZSxCJd5g/edit#gid=0
 
+### Twilio setup
+
+You'll next need to have a Twilio (or similar) account to have a phone number and mechanism for sending messages. I chose Twilio because of its popularity and affordability.
+
 ### Repo setup
 
 Then clone this repo and create an `.env` file at the root directory with the following:
@@ -75,3 +79,5 @@ To run your Flask Lambda app locally, you can run `serverless wsgi serve` which 
 ### Deploying changes
 
 To deploy to AWS, simply run `serverless deploy` or `serverless deploy function --function api`.
+
+Once your application has been deployed for the first time to AWS, Serverless will inform you of the public URL to your API. You'll need to copy that URL into Twilio where it asks you for a consumer for their webhook.
