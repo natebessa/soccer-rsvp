@@ -23,6 +23,7 @@ service = discovery.build('sheets', 'v4', credentials=credentials)
 sheet = service.spreadsheets()
 
 EVENT_DATE = os.environ.get('EVENT_DATE')
+TEAM_NAME = os.environ.get('TEAM_NAME')
 
 def get_roster():
     """Returns the roster players."""
@@ -175,20 +176,20 @@ def update_player_active_flag(phone, active):
 
     if existing_roster_row:
         request = sheet.values().update(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
-                                         range=f'Roster!C{existing_roster_row}', # Google Sheets A1 Notation
-                                         valueInputOption='RAW',
-                                         body=body)
+                                        range=f'Roster!C{existing_roster_row}', # Google Sheets A1 Notation
+                                        valueInputOption='RAW',
+                                        body=body)
         request.execute()
 
 
 @app.route('/send-rsvp', methods=['GET'])
 def send_rsvp():
-    """Sends RSVP requests."""
-    roster = get_roster()
-    if not roster:
-        return "Roster not found", 400
+    """Triggers the sending of RSVP requests. This endpoint should
+    eventually be replaced by an automated process that triggers SMS
+    RSVP requests."""
 
-    message = f"Hey RHSG! Roll call for soccer on {EVENT_DATE} at 8am.\n\nPlease reply YES/NO if you can make it.\n\nYou can also reply STATUS to see responses so far. Text LEAVE if you want to stop receiving these messages."
+    roster = get_roster()
+    message = f"Hey {TEAM_NAME}! Roll call for soccer on {EVENT_DATE} at 8am.\n\nPlease reply YES/NO if you can make it.\n\nYou can also reply STATUS to see responses so far. Text LEAVE if you want to stop receiving these messages."
     for phone in roster.keys():
         send_sms(phone, message)
 
@@ -233,8 +234,9 @@ def twilio():
     elif message == 'STATUS':
         return generate_sms_reply_to_status(phone=phone)
 
+    # Process requests to leave the league and stop receiving messages.
     elif message == 'LEAVE':
         update_player_active_flag(phone=phone, active=False)
-        return build_sms_message(phone=phone, message="You're now unsubscribed from future RHSG messages. If you change your mind later, please reach out to Nate directly.")
+        return build_sms_message(phone=phone, message=f"You're now unsubscribed from future {TEAM_NAME} messages. If you change your mind later, please reach out to Nate directly.")
 
     return "Error: Unsupported text message.", 500
