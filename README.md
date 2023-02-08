@@ -1,12 +1,15 @@
 # soccer-rsvp
- An app to simplify and automate managing pickup soccer attendance.
+For what feels like many years now, I've managed a pick-up soccer league for friends. Each week I round up enough people (10 usually being the ideal number) to have competitive games. In the winter we split the cost of renting a school gym so we can keep playing through the coldest months. As the organizer, I take on some risk being on the hook for the gym fees if I don't have enough people to split the costs.
+
+Up until recently, I would create posts in a private Facebook group to ask who would be coming. That worked fine for a while but more recently many of us have moved on from Facebook. I looked around for better options, for simple ways to ask people for a yes or no if they would make it to our next game. What was clear to me is everyone has a phone number, everyone is acustomed to sending text messages, and most people respond to texts.
+
+What I didn't find out there was a simple text messaging solution for managing RSVPs to events. That's what this Flask-based application attempts to solve. I'm not sure yet if it's useful for anyone else, but at least for me it has made my life a lot easier! And I think my soccer teammates appreciate the simplicity of being able to text a number "YES" and "STATUS" to lock in their spot for our next game and to see who else is coming.
 
 ## Goals
 
-My goals with this project were to:
+My goals with this project were two-fold:
 1. Simplify managing a pick-up soccer league by making it easy for players to RSVP via SMS.
 2. Keep costs as close to zero as possible because this is a no revenue project.
-3. Get more experience with NextJS, React, Twilio, and Serverless applications.
 
 ## Technologies
 
