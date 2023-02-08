@@ -34,17 +34,9 @@ I'm open to any feedback. Let me know what you think by emailing me at nate(at)b
 
 ## Getting started
 
-### Google Sheet setup
+### Initial repo setup
 
-First, create your Google Sheet that'll act as your database. You can clone my example here: https://docs.google.com/spreadsheets/d/1o5qf7vRcRmPSKx3SnmclB_tXotI6HecymYzZSxCJd5g/edit#gid=0
-
-### Twilio setup
-
-You'll next need to have a Twilio (or similar) account to have a phone number and mechanism for sending messages. I chose Twilio because of its popularity and affordability.
-
-### Repo setup
-
-Then clone this repo and create an `.env` file at the root directory with the following:
+Clone this repo and create an `.env` file at the root directory with the following:
 
 ```
 # Event management
@@ -63,6 +55,20 @@ SPREADSHEET_RANGE_RSVPS='RSVPs!A:C'
 SPREADSHEET_RANGE_SMS_LOGS_RECEIVED='SmsLogsReceived!A:C'
 SPREADSHEET_RANGE_SMS_LOGS_SENT='SmsLogsSent!A:C'
 ```
+
+### Google Sheet + Google Cloud setup
+
+Next, create your Google Sheet that'll act as your database. You can clone my example here: https://docs.google.com/spreadsheets/d/1o5qf7vRcRmPSKx3SnmclB_tXotI6HecymYzZSxCJd5g/edit#gid=0
+
+Next you'll need to create a Google Cloud account in order to get API access to Google Sheets. You can read more how to do that here: https://developers.google.com/sheets/api/quickstart/python#set_up_your_environment
+
+Once your Google Cloud account is setup, you'll want to create a Service Account under APIs & Services > Service Accounts. Download the credentials file and save it to `google-creds.json` in the root directory of this repo. Finally, share your Google Sheet with your Service Account, so it has access to write to the Sheet.
+
+### Twilio setup
+
+You'll next need to have a Twilio (or similar) account to have a phone number and mechanism for sending messages. I chose Twilio because of its popularity and affordability.
+
+### Local setup
 
 With these commands, create a virtualenv to install the Python requirements.
 
@@ -83,8 +89,6 @@ I created an AWS account on the Free Tier and connected it to an account with Se
 - In the Serverless console, create an app `soccer-rsvp`
 - Go to working directory of your repo ~/
 - Run command `npm i -g serverless && serverless --org=YOUR-ORG --app=soccer-rsvp --name=soccer-rsvp`
-
-### Local development
 
 To run your Flask Lambda app locally, you can run `serverless wsgi serve` which will fire up the Flask application on your machine.
 
