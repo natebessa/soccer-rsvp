@@ -11,6 +11,12 @@ My goals with this project were two-fold:
 1. Simplify managing a pick-up soccer league by making it easy for players to RSVP via SMS.
 2. Keep costs as close to zero as possible because this is a no revenue project.
 
+This application is still very much in MVP phase. Some features I'd like to add to it overtime are:
+
+- Automating the weekly sending of RSVP requests.
+- A waitlist feature, so our games aren't over-subscribed.
+- Collecting payments when RSVPing, so people who take a spot on the roster are financially committed.
+
 ## Technologies
 
 For this project, I use the following technologies:
@@ -19,6 +25,12 @@ For this project, I use the following technologies:
 - Lambda: Spins up the Flask application only on-demand to keep costs extremely low.
 - API Gateway: Exposes the Lambda-deployed Flask application publicly as an API.
 - Google Sheets: Free database storage. Something I can pull up on my phone whenever I need a quick look at the data.
+
+## Open source and feedback
+
+If you find this app useful, please feel to use it! You can clone the repo as is and follow the installation steps below. You can contibute to the development of this repo by opening a PR, which I'll review when I can. Or, fork the repo and grow it as you wish.
+
+I'm open to any feedback. Let me know what you think by emailing me at nate(at)bessa.io
 
 ## Getting started
 
