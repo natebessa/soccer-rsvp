@@ -214,12 +214,13 @@ def twilio():
     # Validate sender.
     roster = get_roster()
     if phone not in roster.keys():
-        message = 'Sorry, you are not in our roster.'
+        message = "Sorry, you are not in our roster."
         return build_sms_message(phone=phone, message=message)
 
     # Validate message.
-    if message not in ['YES', 'NO', 'STATUS', 'LEAVE']:
-        message = 'Sorry, I am a dumb bot. The only responses I understand at this time are: YES, NO, STATUS, and LEAVE.'
+    allowed_responses = ['YES', 'NO', 'STATUS', 'LEAVE']
+    if message not in allowed_responses:
+        message = f"Sorry, I am a dumb bot. The only responses I understand at this time are: {', '.join(allowed_responses)}."
         return build_sms_message(phone=phone, message=message)
 
     # Process RSVPs.
