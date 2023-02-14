@@ -12,12 +12,14 @@ custom:
 provider:
   name: aws
   runtime: python3.7
+  timeout: 25 # default of 6 seconds is too short to send SMS to whole roster
 
 functions:
   api:
     handler: wsgi_handler.handler
     events:
       - httpApi: '*'
+    timeout: 25 # default of 6 seconds is too short to send SMS to whole roster
 
 plugins:
   - serverless-wsgi
