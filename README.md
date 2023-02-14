@@ -40,7 +40,6 @@ Clone this repo and create an `.env` file at the root directory with the followi
 
 ```
 # Event management
-EVENT_DATE=02/11/2023
 TEAM_NAME=Real Madrid
 
 # Twilio credentials

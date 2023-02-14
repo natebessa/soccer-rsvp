@@ -1,5 +1,6 @@
-from datetime import datetime
+import datetime
 import os
+import pytz
 
 from dotenv import load_dotenv
 from flask import Flask, request
@@ -22,8 +23,24 @@ credentials = service_account.Credentials.from_service_account_file(secret_file,
 service = discovery.build('sheets', 'v4', credentials=credentials)
 sheet = service.spreadsheets()
 
-EVENT_DATE = os.environ.get('EVENT_DATE')
 TEAM_NAME = os.environ.get('TEAM_NAME')
+
+def get_next_saturday_date():
+    """Games are played on Saturdays. Return the next Saturday date."""
+
+    eastern_tz = pytz.timezone("US/Eastern")
+    today = datetime.datetime.now(eastern_tz)
+    days_until_saturday = 5 - today.weekday()
+
+    if days_until_saturday == 0:
+        return today.date()
+    elif days_until_saturday < 0:
+        days_until_saturday += 7
+
+    next_saturday = today + datetime.timedelta(days=days_until_saturday)
+    return next_saturday.date().strftime("%m/%d/%Y")
+
+EVENT_DATE = get_next_saturday_date()
 
 def get_roster():
     """Returns the roster players."""
@@ -105,7 +122,7 @@ def get_roster_row_number(phone):
 def log_message(phone, message, direction):
     """Writes what messages are sent/received to the appropriate spreadsheet."""
 
-    values = [[phone, datetime.now().strftime("%m/%d/%Y, %H:%M:%S"), message]]
+    values = [[phone, datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"), message]]
     body = {'values': values}
 
     if direction == 'inbound':
@@ -130,7 +147,7 @@ def build_sms_message(phone, message):
 def generate_sms_reply_to_status(phone):
     """Returns the TwiML markup for a text with a summary of RSVPs so far for the next event."""
     rsvps = get_rsvps(date=EVENT_DATE)
-    message = f"So far we have {len(rsvps['YES'])} YES and {len(rsvps['NO'])} NO.\n\n"
+    message = f"For {EVENT_DATE}, so far we have {len(rsvps['YES'])} YES and {len(rsvps['NO'])} NO.\n\n"
     message += f"Yes: {', '.join(sorted(rsvps['YES']))}\n\n"
     message += f"No: {', '.join(sorted(rsvps['NO']))}"
     return build_sms_message(phone=phone, message=message)
