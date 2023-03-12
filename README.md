@@ -3,7 +3,7 @@ For what feels like many years now, I've managed a pick-up soccer league for fri
 
 Up until recently, I would create posts in a private Facebook group to ask who would be coming. That worked fine for a while but more recently many of us have moved on from Facebook. I looked around for better options, for simple ways to ask people for a yes or no if they would make it to our next game. What was clear to me is everyone has a phone number, everyone is acustomed to sending text messages, and most people respond to texts.
 
-What I didn't find out there was a simple text messaging solution for managing RSVPs to events. That's what this Flask-based application attempts to solve. I'm not sure yet if it's useful for anyone else, but at least for me it has made my life a lot easier! And I think my soccer teammates appreciate the simplicity of being able to text a number "YES" and "STATUS" to lock in their spot for our next game and to see who else is coming.
+What I didn't find out there was a simple text messaging solution for managing RSVPs to events. That's what this Flask-based application attempts to solve. This solution has made my life easier as organizer of the group. Further, the players appreciate the simplicity of being able to text a number "YES" to lock in their spot, and "STATUS" to see who else is coming.
 
 ## Goals
 

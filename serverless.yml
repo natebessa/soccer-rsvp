@@ -6,7 +6,7 @@ frameworkVersion: '3'
 
 custom:
   wsgi:
-    app: app.app
+    app: app.app.app
     pythonBin: python3
 
 provider:
