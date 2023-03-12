@@ -33,12 +33,12 @@ def get_next_saturday_date():
     days_until_saturday = 5 - today.weekday()
 
     if days_until_saturday == 0:
-        return today.date()
+        date = today.date()
     elif days_until_saturday < 0:
         days_until_saturday += 7
+        date = today + datetime.timedelta(days=days_until_saturday)
 
-    next_saturday = today + datetime.timedelta(days=days_until_saturday)
-    return next_saturday.date().strftime("%m/%d/%Y")
+    return date.strftime("%m/%d/%Y")
 
 EVENT_DATE = get_next_saturday_date()
 
