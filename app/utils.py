@@ -185,12 +185,10 @@ def update_player_active_flag(phone: str, active: str):
     """Updates a player's Active flag in the spreadsheet."""
 
     existing_roster_row = get_roster_row_number(phone=phone)
-    active_flag = 'Yes' if active else 'No'
-
-    values = [[active_flag]]
-    body = {'values': values}
 
     if existing_roster_row:
+        values = [['Yes' if active else 'No']]
+        body = {'values': values}
         request = sheet.values().update(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
                                         range=f'Roster!C{existing_roster_row}', # Google Sheets A1 Notation
                                         valueInputOption='RAW',
