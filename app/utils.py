@@ -34,11 +34,12 @@ def get_next_saturday_date() -> str:
     days_until_saturday = 5 - today.weekday()
 
     if days_until_saturday == 0:
-        date = today.date()
-    elif days_until_saturday < 0:
-        days_until_saturday += 7
-        date = today + datetime.timedelta(days=days_until_saturday)
+        return today.date().strftime("%m/%d/%Y")
 
+    if days_until_saturday < 0:
+        days_until_saturday += 7
+
+    date = today + datetime.timedelta(days=days_until_saturday)
     return date.strftime("%m/%d/%Y")
 
 def get_roster() -> Dict[str, str]:
